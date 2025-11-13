@@ -6,6 +6,7 @@ body {
 
 body {
   overflow: hidden;
+  font-family: 'Segoe UI', Arial, sans-serif;
 }
 
 .app-container {
@@ -18,17 +19,15 @@ body {
   padding: 2rem;
   box-sizing: border-box;
   color: #0f172a;
-  font-family: 'Segoe UI', Arial, sans-serif;
 }
 
-
 .app-container.ok {
-  background-color: #0f5132;
-  color: #d1fae5;
+  background-color: #166534;
+  color: #e2fbe8;
 }
 
 .app-container.error {
-  background-color: #7f1d1d;
+  background-color: #991b1b;
   color: #fee2e2;
 }
 
@@ -46,8 +45,8 @@ body {
 }
 
 .status-panel,
-.cases-panel {
-  background: rgba(15, 23, 42, 0.35);
+.summary-panel {
+  background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(12px);
   border-radius: 20px;
   padding: 2rem;
@@ -55,13 +54,13 @@ body {
 }
 
 .app-container.ok .status-panel,
-.app-container.ok .cases-panel {
-  background: rgba(15, 81, 50, 0.55);
+.app-container.ok .summary-panel {
+  background: rgba(22, 101, 52, 0.35);
 }
 
 .app-container.error .status-panel,
-.app-container.error .cases-panel {
-  background: rgba(127, 29, 29, 0.55);
+.app-container.error .summary-panel {
+  background: rgba(153, 27, 27, 0.35);
 }
 
 .status-text {
@@ -82,13 +81,54 @@ body {
   color: #facc15;
 }
 
+.label-required-warning {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: rgba(248, 113, 113, 0.2);
+  border: 2px solid rgba(248, 113, 113, 0.6);
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fca5a5;
+  text-align: center;
+  animation: pulse-warning 2s ease-in-out infinite;
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+.status-label {
+  margin-top: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.status-label span {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
 .status-caption {
   margin-top: 0.5rem;
   font-size: 1rem;
   opacity: 0.8;
 }
 
+.status-warning {
+  color: #facc15;
+  opacity: 1;
+}
+
 .image-wrapper {
+  position: relative;
   margin-top: 2rem;
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -101,10 +141,25 @@ body {
   justify-content: center;
 }
 
+.image-wrapper.ready {
+  border-style: solid;
+  border-color: rgba(34, 197, 94, 0.55);
+}
+
 .image-wrapper img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.piece-image.ok {
+  border: 8px solid #22c55e;
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.6), inset 0 0 20px rgba(34, 197, 94, 0.2);
+}
+
+.piece-image.error {
+  border: 8px solid #f87171;
+  box-shadow: 0 0 30px rgba(248, 113, 113, 0.6), inset 0 0 20px rgba(248, 113, 113, 0.2);
 }
 
 .image-placeholder {
@@ -112,70 +167,164 @@ body {
   opacity: 0.7;
 }
 
-.cases-panel h2 {
+.image-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  letter-spacing: 0.65rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.25);
+  text-transform: uppercase;
+  pointer-events: none;
+  text-shadow: 0 8px 20px rgba(15, 23, 42, 0.6);
+}
+
+.summary-panel h2 {
   margin-top: 0;
   font-size: 1.5rem;
 }
 
-.cases-hint {
+.summary-hint {
   margin: 0.5rem 0 1.5rem;
   font-size: 0.95rem;
   opacity: 0.85;
 }
 
-.cases-grid {
+.summary-hint code {
+  background: rgba(15, 23, 42, 0.5);
+  padding: 0.15rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
-.case-card {
-  cursor: pointer;
-  padding: 1.25rem 1rem;
-  border: none;
-  border-radius: 16px;
-  font: inherit;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  color: inherit;
-  background: rgba(255, 255, 255, 0.12);
-  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-}
-
-.case-card:hover:not(:disabled) {
-  transform: translateY(-4px);
-  background: rgba(255, 255, 255, 0.2);
-  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.35);
-}
-
-.case-card:disabled {
-  cursor: progress;
+.summary-title {
+  display: block;
+  font-size: 0.9rem;
   opacity: 0.7;
 }
 
-.case-label {
-  font-size: 1.1rem;
+.summary-value {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 1.5rem;
   font-weight: 700;
 }
 
-.case-summary {
-  font-size: 0.9rem;
+.summary-updated {
+  margin: 0;
+  font-size: 0.95rem;
   opacity: 0.85;
 }
 
-.case-ok {
-  border: 1px solid rgba(34, 197, 94, 0.45);
+.summary-updated span {
+  font-weight: 600;
+  margin-left: 0.35rem;
 }
 
-.case-error {
-  border: 1px solid rgba(248, 113, 113, 0.45);
+.statistics-section {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.feedback {
+.statistics-section h3 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.statistics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.stat-item {
+  padding: 0.75rem;
+  border-radius: 10px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-item.ok-stat {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.stat-item.error-stat {
+  background: rgba(248, 113, 113, 0.15);
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.stat-item.label-stat {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.75;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-value {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.stat-item.ok-stat .stat-value {
+  color: #22c55e;
+}
+
+.stat-item.error-stat .stat-value {
+  color: #f87171;
+}
+
+.stat-item.label-stat .stat-value {
+  color: #3b82f6;
+}
+
+.printed-label-section {
   margin-top: 1.5rem;
-  font-size: 0.95rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.printed-label-section h3 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.printed-label-image {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.alert {
+  margin-top: 1.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: rgba(250, 204, 21, 0.25);
+  border: 1px solid rgba(250, 204, 21, 0.6);
 }
 
 @media (max-width: 960px) {

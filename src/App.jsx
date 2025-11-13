@@ -4,10 +4,25 @@ import './App.css';
 const API_BASE_URL = 'http://localhost:3001/api';
 const REFRESH_INTERVAL_MS = 3000;
 
+const defaultSummary = {
+  isOk: null,
+  currentPiecesOk: 0,
+  printedLabelPath: null,
+  lastPrintAt: null,
+  currentPieceImagePath: null,
+};
+
 const emptyResult = {
-  imageUrl: '',
   isOk: null,
   timestamp: null,
+  currentPiecesOk: 0,
+  printedLabelPath: null,
+  lastPrintAt: null,
+  currentPieceImagePath: null,
+  totalOk: 0,
+  totalRejected: 0,
+  totalLabels: 0,
+  labelRequiredWarning: null,
 };
 
 const statusText = (isOk) => {
@@ -24,27 +39,8 @@ const statusClass = (isOk) => {
   return isOk ? 'status-ok' : 'status-error';
 };
 
-const sampleCases = [
-  {
-    id: 'case-ok',
-    label: 'Producto OK',
-    summary: 'Sin defectos detectados',
-    isOk: true,
-    imageUrl: 'https://images.unsplash.com/photo-1582719478181-2cf4e7369d3f?auto=format&fit=crop&w=1200&q=80',
-  },
-  {
-    id: 'case-error',
-    label: 'Producto con defecto',
-    summary: 'Detectado defecto crítico',
-    isOk: false,
-    imageUrl: 'https://images.unsplash.com/photo-1449247709967-d4461a6a6103?auto=format&fit=crop&w=1200&q=80',
-  },
-];
-
 function App() {
   const [latestResult, setLatestResult] = useState(emptyResult);
-  const [feedback, setFeedback] = useState('');
-  const [loading, setLoading] = useState(false);
   const [pollingError, setPollingError] = useState(false);
 
   const backgroundClass = useMemo(() => {
@@ -60,20 +56,16 @@ function App() {
     const fetchLatest = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/qc-result`);
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
         const data = await response.json();
+
         if (isMounted) {
-          setLatestResult({
-            imageUrl: data.imageUrl ?? '',
-            isOk: typeof data.isOk === 'boolean' ? data.isOk : null,
-            timestamp: data.timestamp ?? null,
-          });
+          setLatestResult(data || {});
           setPollingError(false);
         }
       } catch (error) {
-        console.error('No se pudo obtener el resultado más reciente', error);
+        console.error('[POLLING ERROR]', error.message);
         if (isMounted) {
           setPollingError(true);
         }
@@ -89,50 +81,6 @@ function App() {
     };
   }, []);
 
-  const handleSampleSend = async ({ imageUrl, isOk, label }) => {
-    if (loading) {
-      return;
-    }
-
-    const previousResult = latestResult;
-    const optimisticResult = {
-      imageUrl,
-      isOk,
-      timestamp: new Date().toISOString(),
-    };
-
-    setLatestResult(optimisticResult);
-    setLoading(true);
-    setFeedback(`Enviando ${label.toLowerCase()}...`);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/qc-result`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageUrl,
-          isOk,
-        }),
-      });
-
-      if (!response.ok && response.status !== 204) {
-        throw new Error(`Error ${response.status}`);
-      }
-
-      setFeedback('Resultado simulado enviado.');
-      setPollingError(false);
-    } catch (error) {
-      console.error('No se pudo enviar el resultado de QC', error);
-      setLatestResult(previousResult);
-      setFeedback('No se pudo enviar el resultado. Revisa la consola para más detalles.');
-      setPollingError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className={backgroundClass}>
       <main className="dashboard">
@@ -140,42 +88,83 @@ function App() {
           <h1 className={`status-text ${statusClass(latestResult.isOk)}`}>
             {statusText(latestResult.isOk)}
           </h1>
+          
+          {latestResult.labelRequiredWarning && (
+            <div className="label-required-warning">
+              {latestResult.labelRequiredWarning}
+            </div>
+          )}
+          
           <p className={`status-caption ${pollingError ? 'status-warning' : ''}`}>
             {pollingError
-              ? 'Sin conexión con el backend. Mostrando último dato disponible.'
+              ? 'Sin conexión con el backend.'
               : latestResult.timestamp
                   ? `Actualizado: ${new Date(latestResult.timestamp).toLocaleString()}`
                   : 'Esperando resultados...'}
           </p>
           <div className="image-wrapper">
-            {latestResult.imageUrl ? (
-              <img src={latestResult.imageUrl} alt="Resultado de inspección" />
+            {latestResult.currentPieceImagePath ? (
+              <img 
+                src={`http://localhost:3001${latestResult.currentPieceImagePath}`}
+                alt="Imagen de pieza" 
+                className={`piece-image ${latestResult.isOk ? 'ok' : 'error'}`}
+              />
             ) : (
               <span className="image-placeholder">Sin imagen</span>
             )}
           </div>
         </section>
-        <section className="cases-panel">
-          <h2>Casos de prueba</h2>
-          <p className="cases-hint">Elige un escenario para enviar el resultado al backend.</p>
-          <div className="cases-grid">
-            {sampleCases.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`case-card ${item.isOk ? 'case-ok' : 'case-error'}`}
-                onClick={() => handleSampleSend(item)}
-                disabled={loading}
-              >
-                <span className="case-label">{item.label}</span>
-                <span className="case-summary">{item.summary}</span>
-              </button>
-            ))}
+        <section className="summary-panel">
+          <h2>Estado actual</h2>
+          <div className="summary-grid">
+            <div>
+              <span className="summary-title">Piezas OK</span>
+              <span className="summary-value">{latestResult.currentPiecesOk || 0}/4</span>
+            </div>
+            <div>
+              <span className="summary-title">Estado</span>
+              <span className="summary-value">
+                {(latestResult.currentPiecesOk || 0) >= 4 ? 'Listo' : `${4 - (latestResult.currentPiecesOk || 0)} pend.`}
+              </span>
+            </div>
           </div>
-          {pollingError && (
-            <p className="alert">No se pudo contactar el servidor. Se mantendrá el último estado conocido.</p>
+          {latestResult.lastPrintAt && (
+            <p className="summary-updated">
+              Última impresión: {new Date(latestResult.lastPrintAt).toLocaleString()}
+            </p>
           )}
-          {feedback && <p className="feedback">{feedback}</p>}
+          
+          <div className="statistics-section">
+            <h3>Estadísticas</h3>
+            <div className="statistics-grid">
+              <div className="stat-item ok-stat">
+                <span className="stat-label">Total Aceptadas</span>
+                <span className="stat-value">{latestResult.totalOk || 0}</span>
+              </div>
+              <div className="stat-item error-stat">
+                <span className="stat-label">Total Rechazadas</span>
+                <span className="stat-value">{latestResult.totalRejected || 0}</span>
+              </div>
+              <div className="stat-item label-stat">
+                <span className="stat-label">Total Etiquetas</span>
+                <span className="stat-value">{latestResult.totalLabels || 0}</span>
+              </div>
+            </div>
+          </div>
+
+          {latestResult.printedLabelPath && (
+            <div className="printed-label-section">
+              <h3>Etiqueta impresa</h3>
+              <img
+                src={`http://localhost:3001${latestResult.printedLabelPath}`}
+                alt="Etiqueta"
+                className="printed-label-image"
+              />
+            </div>
+          )}
+          {pollingError && (
+            <p className="alert">No se pudo contactar el servidor.</p>
+          )}
         </section>
       </main>
     </div>
